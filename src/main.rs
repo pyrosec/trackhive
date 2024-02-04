@@ -1,9 +1,8 @@
 use clap::{Command, Arg};
 use reqwest::{blocking, blocking::Client, Error};
-use std::{collections::HashMap, env, fs, io::Write, path::{Path}};
+use std::{collections::HashMap, env, fs, io::{Read, Write}, path::{Path}};
 use serde::{Serialize, Deserialize};
-use serde_json;
-
+use serde_json::{self, from_str};
 
 
 fn construct_create_tracking_request(tracking: String, slug: String) -> Result<blocking::Response, Error>{
@@ -12,10 +11,6 @@ fn construct_create_tracking_request(tracking: String, slug: String) -> Result<b
     
     body.insert("tracking_number".to_string(), tracking);
     body.insert("slug".to_string(), slug);
-
-
-    let proxy = reqwest::Proxy::http("socks5://ugpbduqu:5B3D4D37F40BEF8F001B6C53BAC7F29F@161.77.80.202:19088").unwrap();
-
 
     let client = Client::new();
 
@@ -44,13 +39,15 @@ impl Trackhive {
 
     }
 
-    fn load(self: Self){
+    fn load() -> Result <Self, Error> {
         let path = Path::new(&(env::var("HOME").unwrap())).join(".trackhive");
-        if(path.is_dir()){
-            let mut session = fs::File::open(path.clone().join("session.json")).unwrap();
-            let contents = serde_json::from_reader(session);
-            
-
+        if path.is_dir(){
+            let session = fs::read_to_string(path.clone().join("session.json")).expect("There is no session file");
+            // parse file 
+            let tracking: Trackhive = from_str(&session).expect("Unable to parse session");
+            Ok(tracking)
+        } else {
+            panic!("No session file found.")
         }
     }
 }
